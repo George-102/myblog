@@ -1,0 +1,69 @@
+name: Java CI/CD with Maven and Docker
+
+on:
+  push:
+    branches: [ main ]
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v4
+      - name: Set up JDK 17
+        uses: actions/setup-java@v3
+        with:
+          java-version: '17'
+          distribution: 'temurin'
+          cache: 'maven'
+      - name: Build with Maven
+        run: mvn -B clean package
+
+      - name: Build Docker image
+        run: docker build -t my-blog:${{ github.sha }} .
+
+      - name: Log in to Docker Hub
+        uses: docker/login-action@v2
+        with:
+          username: ${{ secrets.DOCKERHUB_USERNAME }}
+          password: ${{ secrets.DOCKERHUB_TOKEN }}
+
+      - name: Push Docker image
+        run: |
+          docker tag my-blog:${{ github.sha }} ${{ secrets.DOCKERHUB_USERNAME }}/my-blog:latest
+          docker push ${{ secrets.DOCKERHUB_USERNAME }}/my-blog:latest
+
+  deploy:
+    needs: build
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Deploy to Server via SSH (Password Auth)
+        uses: appleboy/ssh-action@v1.0.0
+        with:
+          host: ${{ secrets.SERVER_HOST }}  # 使用 SERVER_HOST 而不是 SERVER_IP
+          username: ${{ secrets.SERVER_USER }}
+          password: ${{ secrets.SERVER_PASSWORD }}
+          port: ${{ secrets.SSH_PORT || 22 }}
+          script: |
+            echo "开始部署到服务器: ${{ secrets.SERVER_HOST }}"
+            
+            # 拉取最新镜像
+            docker pull ${{ secrets.DOCKERHUB_USERNAME }}/my-blog:latest
+
+            # 停止并删除旧容器
+            docker stop live-blog || true
+            docker rm live-blog || true
+
+            # 运行新容器（请根据你的数据库配置调整环境变量）
+            docker run -d \
+              --name live-blog \
+              -p 8080:8080 \
+              -e "JDBC_URL=jdbc:mysql://你的数据库IP:3306/myblog?useSSL=false&serverTimezone=UTC" \
+              -e "JDBC_USER=root" \
+              -e "JDBC_PASSWORD=${{ secrets.DB_PASSWORD }}" \
+              ${{ secrets.DOCKERHUB_USERNAME }}/my-blog:latest
+            
+            echo "部署完成！"
+            echo "容器状态："
+            docker ps -a | grep live-blog
