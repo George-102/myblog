@@ -10,17 +10,43 @@ jobs:
 
     steps:
       - uses: actions/checkout@v4
+
       - name: Set up JDK 17
         uses: actions/setup-java@v3
         with:
           java-version: '17'
           distribution: 'temurin'
           cache: 'maven'
+
       - name: Build with Maven
         run: mvn -B clean package
 
-      - name: Build Docker image
-        run: docker build -t my-blog:${{ github.sha }} .
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v2
+
+      - name: Build Docker image with Chinese mirror
+        run: |
+          # 使用国内可靠的Tomcat镜像
+          cat > Dockerfile << 'EOF'
+          FROM openjdk:17-jre-slim
+          
+          # 使用国内镜像下载Tomcat
+          RUN apt-get update && \
+              apt-get install -y wget && \
+              wget https://mirrors.tuna.tsinghua.edu.cn/apache/tomcat/tomcat-9/v9.0.82/bin/apache-tomcat-9.0.82.tar.gz -O /tmp/tomcat.tar.gz && \
+              tar -xzf /tmp/tomcat.tar.gz -C /usr/local && \
+              mv /usr/local/apache-tomcat-9.0.82 /usr/local/tomcat && \
+              rm /tmp/tomcat.tar.gz && \
+              apt-get remove -y wget && \
+              apt-get autoremove -y && \
+              rm -rf /var/lib/apt/lists/*
+          
+          COPY target/my-blog.war /usr/local/tomcat/webapps/ROOT.war
+          EXPOSE 8080
+          CMD ["/usr/local/tomcat/bin/catalina.sh", "run"]
+          EOF
+          
+          docker build -t my-blog:${{ github.sha }} .
 
       - name: Log in to Docker Hub
         uses: docker/login-action@v2
@@ -38,32 +64,38 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-      - name: Deploy to Server via SSH (Password Auth)
+      - name: Deploy to Server via SSH
         uses: appleboy/ssh-action@v1.0.0
         with:
-          host: ${{ secrets.SERVER_HOST }}  # 使用 SERVER_HOST 而不是 SERVER_IP
+          host: ${{ secrets.SERVER_HOST }}
           username: ${{ secrets.SERVER_USER }}
           password: ${{ secrets.SERVER_PASSWORD }}
-          port: ${{ secrets.SSH_PORT || 22 }}
           script: |
-            echo "开始部署到服务器: ${{ secrets.SERVER_HOST }}"
+            # 配置服务器使用国内镜像源
+            sudo mkdir -p /etc/docker
+            sudo tee /etc/docker/daemon.json <<-'EOF'
+            {
+              "registry-mirrors": ["https://hub-mirror.c.163.com"]
+            }
+            EOF
+            sudo systemctl daemon-reload
+            sudo systemctl restart docker
             
-            # 拉取最新镜像
+            # 拉取镜像
             docker pull ${{ secrets.DOCKERHUB_USERNAME }}/my-blog:latest
-
+            
             # 停止并删除旧容器
             docker stop live-blog || true
             docker rm live-blog || true
-
-            # 运行新容器（请根据你的数据库配置调整环境变量）
+            
+            # 运行新容器
             docker run -d \
               --name live-blog \
               -p 8080:8080 \
-              -e "JDBC_URL=jdbc:mysql://你的数据库IP:3306/myblog?useSSL=false&serverTimezone=UTC" \
-              -e "JDBC_USER=root" \
+              -e "JDBC_URL=jdbc:mysql://${{ secrets.DB_HOST }}:3306/myblog?useSSL=false&serverTimezone=UTC" \
+              -e "JDBC_USER=${{ secrets.DB_USER }}" \
               -e "JDBC_PASSWORD=${{ secrets.DB_PASSWORD }}" \
               ${{ secrets.DOCKERHUB_USERNAME }}/my-blog:latest
             
             echo "部署完成！"
-            echo "容器状态："
-            docker ps -a | grep live-blog
+            docker ps
