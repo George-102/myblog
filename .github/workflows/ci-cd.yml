@@ -21,6 +21,28 @@ jobs:
       - name: Build with Maven
         run: mvn -B clean package
 
+      - name: Debug - Check project structure
+        run: |
+          echo "=== 详细文件结构检查 ==="
+          echo "当前目录:"
+          pwd
+          echo "所有文件:"
+          ls -la
+          echo "src目录:"
+          ls -la src/
+          echo "target目录:"
+          ls -la target/ || echo "target目录不存在"
+          echo "尝试查找WAR文件:"
+          find . -name "*.war" -type f || echo "没有找到WAR文件"
+          echo "Maven打包结果:"
+          mvn help:effective-pom | grep packaging || echo "无法获取打包类型"
+
+      - name: Debug - Check Maven build output
+        run: |
+          echo "=== Maven构建详情 ==="
+          # 再次运行Maven并显示详细输出
+          mvn -X clean package | grep -A 10 -B 10 "packaging" || echo "无法获取详细构建信息"
+
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v2
 
