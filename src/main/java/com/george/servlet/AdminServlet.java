@@ -9,6 +9,7 @@ import javax.servlet.http.HttpServlet;
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
 import java.io.IOException;
+import java.net.URLEncoder;
 
 @WebServlet("/admin")
 public class AdminServlet extends HttpServlet {
@@ -43,12 +44,12 @@ public class AdminServlet extends HttpServlet {
         if (ADMIN_PASSWORD.equals(password)) {
             BlogPost post = new BlogPost(title, content);
             if (dao.addPost(post)) {
-                response.sendRedirect(request.getContextPath() + "/?message=发布成功");
+                response.sendRedirect(request.getContextPath() + "/?message="+ URLEncoder.encode("发布成功", "UTF-8"));
             } else {
-                response.sendRedirect(request.getContextPath() + "/admin?error=发布失败");
+                response.sendRedirect(request.getContextPath() + "/admin?error="+ URLEncoder.encode("发布失败", "UTF-8"));
             }
         } else {
-            response.sendRedirect(request.getContextPath() + "/admin?error=密码错误");
+            response.sendRedirect(request.getContextPath() + "/admin?error="+ URLEncoder.encode("密码错误", "UTF-8"));
         }
     }
 }
