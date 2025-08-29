@@ -74,31 +74,27 @@ jobs:
           username: ${{ secrets.SERVER_USER }}
           password: ${{ secrets.SERVER_PASSWORD }}
           script: |
-            # 配置服务器使用国内镜像源
+            echo "配置Docker国内镜像加速器..."
             sudo mkdir -p /etc/docker
-            sudo tee /etc/docker/daemon.json <<-'EOF'
+            sudo tee /etc/docker/daemon.json << 'EOF'
             {
-              "registry-mirrors": ["https://hub-mirror.c.163.com"]
+              "registry-mirrors": [
+                "https://hub-mirror.c.163.com",
+                "https://mirror.baidubce.com", 
+                "https://docker.mirrors.ustc.edu.cn"
+              ]
             }
             EOF
             sudo systemctl daemon-reload
             sudo systemctl restart docker
-            
-            # 拉取镜像
+            sleep 3
+
+            echo "开始拉取镜像..."
             docker pull ${{ secrets.DOCKERHUB_USERNAME }}/my-blog:latest
-            
-            # 停止并删除旧容器
-            docker stop live-blog || true
-            docker rm live-blog || true
-            
-            # 运行新容器
-            docker run -d \
-              --name live-blog \
-              -p 8080:8080 \
+
+            echo "启动容器..."
+            docker run -d --name live-blog -p 8080:8080 \
               -e "JDBC_URL=jdbc:mysql://${{ secrets.DB_HOST }}:3306/myblog?useSSL=false&serverTimezone=UTC" \
               -e "JDBC_USER=${{ secrets.DB_USER }}" \
               -e "JDBC_PASSWORD=${{ secrets.DB_PASSWORD }}" \
               ${{ secrets.DOCKERHUB_USERNAME }}/my-blog:latest
-            
-            echo "部署完成！"
-            docker ps
