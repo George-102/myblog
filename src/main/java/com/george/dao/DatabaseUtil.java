@@ -44,9 +44,16 @@ public class DatabaseUtil {
             throw new ExceptionInInitializerError(e);
         }
     }
-
     public static Connection getConnection() throws SQLException {
         System.out.println("尝试连接数据库: " + url);
-        return DriverManager.getConnection(url, user, password);
+        System.out.println("使用用户: " + user);
+        try {
+            Connection conn = DriverManager.getConnection(url, user, password);
+            System.out.println("数据库连接成功!");
+            return conn;
+        } catch (SQLException e) {
+            System.err.println("数据库连接失败: " + e.getMessage());
+            throw e;
+        }
     }
 }

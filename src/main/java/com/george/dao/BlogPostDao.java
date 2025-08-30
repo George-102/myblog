@@ -70,13 +70,19 @@ public class BlogPostDao {
      */
     public boolean addPost(BlogPost post) {
         String sql = "INSERT INTO posts (title, content) VALUES (?, ?)";
+        System.out.println("执行SQL: " + sql);
+        System.out.println("参数 - 标题: " + post.getTitle());
+        System.out.println("参数 - 内容长度: " + post.getContent().length());
 
         try (Connection conn = DatabaseUtil.getConnection();
              PreparedStatement pstmt = conn.prepareStatement(sql)) {
 
             pstmt.setString(1, post.getTitle());
             pstmt.setString(2, post.getContent());
+
             int affectedRows = pstmt.executeUpdate();
+            System.out.println("受影响行数: " + affectedRows);
+
             return affectedRows > 0;
         } catch (SQLException e) {
             System.err.println("添加文章失败: " + e.getMessage());
