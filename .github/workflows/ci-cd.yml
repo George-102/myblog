@@ -74,31 +74,37 @@ jobs:
           username: ${{ secrets.SERVER_USER }}
           password: ${{ secrets.SERVER_PASSWORD }}
           script: |
-            # 配置服务器使用国内镜像源
-            sudo mkdir -p /etc/docker
-            sudo tee /etc/docker/daemon.json <<-'EOF'
-            {
-              "registry-mirrors": ["https://hub-mirror.c.163.com"]
-            }
-            EOF
-            sudo systemctl daemon-reload
-            sudo systemctl restart docker
+            # 启动 MySQL（如果尚未启动）
+            docker start mysql-server || docker run -d \
+              --name mysql-server \
+              -p 3306:3306 \
+              -v /opt/mysql/data:/var/lib/mysql \
+              -e MYSQL_ROOT_PASSWORD=123456 \
+              -e MYSQL_DATABASE=myblog \
+              -e MYSQL_USER=bloguser \
+              -e MYSQL_PASSWORD=blogpass \
+              mysql:8.0
             
-            # 拉取镜像
-            docker pull ${{ secrets.DOCKERHUB_USERNAME }}/my-blog:latest
+            # 等待 MySQL 启动
+            sleep 10
             
-            # 停止并删除旧容器
+            # 停止并删除旧博客容器
             docker stop live-blog || true
             docker rm live-blog || true
             
-            # 运行新容器
+            # 运行新博客容器，连接到本地 MySQL
             docker run -d \
               --name live-blog \
               -p 8080:8080 \
-              -e "JDBC_URL=jdbc:mysql://${{ secrets.DB_HOST }}:3306/myblog?useSSL=false&serverTimezone=UTC" \
-              -e "JDBC_USER=${{ secrets.DB_USER }}" \
-              -e "JDBC_PASSWORD=${{ secrets.DB_PASSWORD }}" \
+              --link mysql-server:mysql \
+              -e "JDBC_URL=jdbc:mysql://mysql-server:3306/myblog?useUnicode=true&characterEncoding=UTF-8&useSSL=false&serverTimezone=UTC" \
+              -e "JDBC_USER=bloguser" \
+              -e "JDBC_PASSWORD=blogpass" \
               ${{ secrets.DOCKERHUB_USERNAME }}/my-blog:latest
             
             echo "部署完成！"
             docker ps
+            echo "MySQL 连接信息："
+            echo "地址：mysql-server:3306"
+            echo "数据库：myblog"
+            echo "用户：bloguser"
