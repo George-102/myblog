@@ -38,40 +38,42 @@ public class AdminServlet extends HttpServlet {
             String content = request.getParameter("content");
 
             System.out.println("=== 发布文章请求开始 ===");
-            System.out.println("密码参数: " + password);
-            System.out.println("标题参数: " + title);
-            System.out.println("内容长度: " + (content != null ? content.length() : "null"));
-            System.out.println("管理员密码验证: " + ADMIN_PASSWORD.equals(password));
+            System.out.println("Context Path: " + request.getContextPath());
+            System.out.println("Request URL: " + request.getRequestURL());
 
             if (ADMIN_PASSWORD.equals(password)) {
                 BlogPost post = new BlogPost(title, content);
-                System.out.println("创建 BlogPost 对象成功");
 
-                boolean addResult = dao.addPost(post);
-                System.out.println("数据库插入结果: " + addResult);
+                if (dao.addPost(post)) {
+                    String redirectUrl = request.getContextPath() + "/?message=" +
+                            URLEncoder.encode("发布成功", "UTF-8");
+                    System.out.println("重定向URL: " + redirectUrl);
 
-                if (addResult) {
-                    System.out.println("发布成功，准备重定向到首页");
-                    response.sendRedirect(request.getContextPath() + "/?message="+
-                            URLEncoder.encode("发布成功", "UTF-8"));
+                    // 测试性输出到响应，帮助调试
+                    response.getWriter().println("Debug: Redirecting to: " + redirectUrl);
+                    response.getWriter().flush();
+
+                    response.sendRedirect(redirectUrl);
                     return;
                 } else {
-                    System.out.println("发布失败，重定向到错误页面");
-                    response.sendRedirect(request.getContextPath() + "/admin?error="+
-                            URLEncoder.encode("发布失败，请检查数据库", "UTF-8"));
+                    String errorUrl = request.getContextPath() + "/admin?error=" +
+                            URLEncoder.encode("发布失败", "UTF-8");
+                    System.out.println("错误重定向URL: " + errorUrl);
+                    response.sendRedirect(errorUrl);
                     return;
                 }
             } else {
-                System.out.println("密码错误，重定向到错误页面");
-                response.sendRedirect(request.getContextPath() + "/admin?error="+
-                        URLEncoder.encode("密码错误", "UTF-8"));
+                String errorUrl = request.getContextPath() + "/admin?error=" +
+                        URLEncoder.encode("密码错误", "UTF-8");
+                System.out.println("密码错误重定向URL: " + errorUrl);
+                response.sendRedirect(errorUrl);
                 return;
             }
         } catch (Exception e) {
             System.err.println("发布文章时发生异常: " + e.getMessage());
             e.printStackTrace();
-            response.sendRedirect(request.getContextPath() + "/admin?error="+
-                    URLEncoder.encode("系统错误: " + e.getMessage(), "UTF-8"));
+            // 临时返回错误信息到页面以便调试
+            response.getWriter().println("Error: " + e.getMessage());
         }
     }
 }
