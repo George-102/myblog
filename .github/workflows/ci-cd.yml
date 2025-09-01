@@ -96,6 +96,7 @@ jobs:
             # 运行新博客容器，连接到本地 MySQL
             docker run -d \
               --name live-blog \
+              --network blog-network \
               -p 8080:8080 \
               --link mysql-server:mysql \
               -e "JDBC_URL=jdbc:mysql://mysql-server:3306/myblog?useUnicode=true&characterEncoding=UTF-8&useSSL=false&serverTimezone=UTC" \
