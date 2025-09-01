@@ -44,7 +44,7 @@ public class AdminServlet extends HttpServlet {
         if (ADMIN_PASSWORD.equals(password)) {
             BlogPost post = new BlogPost(title, content);
             if (dao.addPost(post)) {
-                response.sendRedirect(request.getContextPath() + "/?message=success");
+                response.sendRedirect( "/?message=success");
             } else {
                 response.sendRedirect(request.getContextPath() + "/admin?error=publish_failed");
             }
