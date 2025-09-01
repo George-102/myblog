@@ -18,6 +18,11 @@ public class DatabaseUtil {
             String jdbcUser = System.getenv("JDBC_USER");
             String jdbcPassword = System.getenv("JDBC_PASSWORD");
 
+            System.out.println("环境变量检查:");
+            System.out.println("JDBC_URL: " + jdbcUrl);
+            System.out.println("JDBC_USER: " + jdbcUser);
+            System.out.println("JDBC_PASSWORD: " + (jdbcPassword != null ? "***" : "null"));
+
             if (jdbcUrl != null && jdbcUser != null && jdbcPassword != null) {
                 // 使用环境变量配置
                 url = jdbcUrl;
@@ -35,11 +40,16 @@ public class DatabaseUtil {
                     password = props.getProperty("jdbc.password");
                     System.out.println("使用配置文件数据库配置: " + url);
                 }
+                else {
+                    System.err.println("db.properties文件未找到！");
+                }
             }
 
             // 加载MySQL驱动
             Class.forName("com.mysql.cj.jdbc.Driver");
+            System.out.println("MySQL驱动加载成功");
         } catch (Exception e) {
+            System.err.println("数据库初始化失败: " + e.getMessage());
             e.printStackTrace();
             throw new ExceptionInInitializerError(e);
         }
@@ -53,6 +63,8 @@ public class DatabaseUtil {
             return conn;
         } catch (SQLException e) {
             System.err.println("数据库连接失败: " + e.getMessage());
+            System.err.println("连接URL: " + url);
+            System.err.println("用户名: " + user);
             throw e;
         }
     }
