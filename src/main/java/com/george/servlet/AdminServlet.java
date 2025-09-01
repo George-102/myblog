@@ -46,10 +46,10 @@ public class AdminServlet extends HttpServlet {
             if (dao.addPost(post)) {
                 response.sendRedirect(request.getContextPath() + "/?message=success");
             } else {
-                response.sendRedirect(request.getContextPath() + "/admin?error="+ URLEncoder.encode("发布失败", "UTF-8"));
+                response.sendRedirect(request.getContextPath() + "/admin?error=publish_failed");
             }
         } else {
-            response.sendRedirect(request.getContextPath() + "/admin?error="+ URLEncoder.encode("密码错误", "UTF-8"));
+            response.sendRedirect(request.getContextPath() + "/admin?error=password_error");
         }
     }
 }

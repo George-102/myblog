@@ -76,14 +76,15 @@ jobs:
           script: |
             # 启动 MySQL（如果尚未启动）
             docker start mysql-server || docker run -d \
-              --name mysql-server \
-              -p 3306:3306 \
-              -v /opt/mysql/data:/var/lib/mysql \
-              -e MYSQL_ROOT_PASSWORD=123456 \
-              -e MYSQL_DATABASE=myblog \
-              -e MYSQL_USER=bloguser \
-              -e MYSQL_PASSWORD=blogpass \
-              mysql:8.0
+            --name mysql-server \
+            --network blog-network \
+            -p 3306:3306 \
+            -v /opt/mysql/data:/var/lib/mysql \
+            -e MYSQL_ROOT_PASSWORD=ady190719 \
+            -e MYSQL_DATABASE=myblog \
+            -e MYSQL_USER=bloguser \
+            -e MYSQL_PASSWORD=ady190719 \
+            mysql:8.0
             
             # 等待 MySQL 启动
             sleep 10
@@ -99,11 +100,12 @@ jobs:
               --link mysql-server:mysql \
               -e "JDBC_URL=jdbc:mysql://mysql-server:3306/myblog?useUnicode=true&characterEncoding=UTF-8&useSSL=false&serverTimezone=UTC" \
               -e "JDBC_USER=bloguser" \
-              -e "JDBC_PASSWORD=blogpass" \
+              -e "JDBC_PASSWORD=ady190719" \
               ${{ secrets.DOCKERHUB_USERNAME }}/my-blog:latest
             
             echo "部署完成！"
             docker ps
+            docker network inspect blog-network
             echo "MySQL 连接信息："
             echo "地址：mysql-server:3306"
             echo "数据库：myblog"
