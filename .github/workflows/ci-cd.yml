@@ -103,7 +103,7 @@ jobs:
               --network blog-network \
               -p 8080:8080 \
               --link mysql-server:mysql \
-              -e "JDBC_URL=jdbc:mysql://mysql-server:3306/myblog?useUnicode=true&characterEncoding=UTF-8&useSSL=false&serverTimezone=UTC" \
+              -e "JDBC_URL=jdbc:mysql://mysql-server:3306/myblog?useUnicode=true&characterEncoding=UTF-8&useSSL=false&serverTimezone=UTC&allowPublicKeyRetrieval=true" \
               -e "JDBC_USER=bloguser" \
               -e "JDBC_PASSWORD=ady190719" \
               ${{ secrets.DOCKERHUB_USERNAME }}/my-blog:latest
